@@ -249,7 +249,7 @@
                     • <strong>Middle Octave (C4-D5):</strong> White keys: t y u i o p a s d | Black keys: T Y I O P S D<br>
                     • <strong>Upper Octave (E5-C7):</strong> White keys: f g h j k l z x c v b n m | Black keys: G H J L Z C B<br>
                     • <strong>Chords:</strong> Use square brackets [asdf] to play notes simultaneously<br>
-                    • <strong>Note Duration:</strong> Space = quarter note | Pipe | = half note | Pipe with 2 spaces ' | ' = whole note<br>
+                    • <strong>Note Duration:</strong> Space = quarter note | Pipe '|' = half note | Pipe with spaces ' | ' = whole note<br>
                     • Example: "t y u| i o p | a s d" or "[tyui] o p a"
                 </div>
 
@@ -379,6 +379,8 @@
                             }
                         }
                         if (chordNotes.length > 0) {
+                            // Add chord with default quarter note duration
+                            // Duration can be changed to half/whole by pipe symbol after the chord
                             notes.push({ isChord: true, notes: chordNotes, duration: 'quarter' });
                         }
                         i = closeIndex + 1;
@@ -390,20 +392,26 @@
                 if (input[i] === '|') {
                     // Check if previous note exists to apply duration
                     if (notes.length > 0) {
-                        // Check for whole note pattern: ' | ' (space before and after)
-                        if (i > 0 && input[i - 1] === ' ' && i + 1 < input.length && input[i + 1] === ' ') {
-                            // Count spaces after pipe
-                            let spacesAfter = 0;
-                            let j = i + 1;
-                            while (j < input.length && input[j] === ' ') {
-                                spacesAfter++;
-                                j++;
-                            }
-                            if (spacesAfter >= 2) {
-                                notes[notes.length - 1].duration = 'whole';
-                            } else {
-                                notes[notes.length - 1].duration = 'half';
-                            }
+                        // Check for whole note pattern: ' | ' (space-pipe-space with at least 2 total spaces around it)
+                        // Count spaces before pipe
+                        let spacesBefore = 0;
+                        let j = i - 1;
+                        while (j >= 0 && input[j] === ' ') {
+                            spacesBefore++;
+                            j--;
+                        }
+                        
+                        // Count spaces after pipe
+                        let spacesAfter = 0;
+                        j = i + 1;
+                        while (j < input.length && input[j] === ' ') {
+                            spacesAfter++;
+                            j++;
+                        }
+                        
+                        // Whole note if we have space on both sides (pattern: ' | ')
+                        if (spacesBefore >= 1 && spacesAfter >= 1) {
+                            notes[notes.length - 1].duration = 'whole';
                         } else {
                             // Regular pipe = half note
                             notes[notes.length - 1].duration = 'half';
