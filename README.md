@@ -36,16 +36,17 @@ Create printable sheet music based on input provided by virtualpiano files.
 
 ## Virtual Piano Key Mapping
 
-### Lower Octave (C3-E4)
-- White keys: `z x c v b n m`
-- Numbers: `1 2 3 4 5 6 7 8 9 0`
+### Lower Octave (C2-B3)
+- White keys: `1 2 3 4 5 6 7 8 9 0 q w e r`
+- Black keys (sharps): `! @ $ % ^ * ( Q W E`
 
 ### Middle Octave (C4-D5)
-- White keys: `a s d f g h j k l`
-- Black keys (sharps): `A S F G H`
+- White keys: `t y u i o p a s d`
+- Black keys (sharps): `T Y I O P S D`
 
-### Upper Octave (E5-G6)
-- White keys: `q w e r t y u i o p`
+### Upper Octave (E5-C7)
+- White keys: `f g h j k l z x c v b n m`
+- Black keys (sharps): `G H J L Z C B`
 
 ## Example Inputs
 
@@ -101,3 +102,19 @@ MIT License - feel free to use and modify as needed.
 
 - Custom SVG music notation implementation
 - Virtual Piano community for the notation system
+
+## How to play
+SEMANTICS OF MUSIC SHEETS
+Here is a simple explanation of how to easily play the Virtual Piano Music Sheets
+
+ORDER OF LETTERS  HOW THEY’RE PLAYED
+[asdf]            Play notes together simultaneously
+[a s d f]         Play the sequence at fastest possible speed
+asdf              Play notes one after the other quickly
+a s d f           Play each note after a short pause
+[as] [df]         Play “as” together, short pause, then “df” together
+as|df             Pause for “|”
+as| df            Long pause for “|” with one extra space
+as | df           Longer pause for “|” with 2 extra spaces
+as| |df           Longest pause for 2 “|” with an extra space
+Paragraph Break   Extended pause
