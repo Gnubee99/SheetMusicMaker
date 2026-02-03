@@ -108,13 +108,13 @@ SEMANTICS OF MUSIC SHEETS
 Here is a simple explanation of how to easily play the Virtual Piano Music Sheets
 
 ORDER OF LETTERS  HOW THEY’RE PLAYED
-[asdf]            Play notes together simultaneously
-[a s d f]         Play the sequence at fastest possible speed
-asdf              Play notes one after the other quickly
-a s d f           Play each note after a short pause
-[as] [df]         Play “as” together, short pause, then “df” together
-as|df             Pause for “|”
-as| df            Long pause for “|” with one extra space
-as | df           Longer pause for “|” with 2 extra spaces
-as| |df           Longest pause for 2 “|” with an extra space
-Paragraph Break   Extended pause
+`[asdf]`            Play notes together simultaneously
+`[a s d f]`         Play the sequence at fastest possible speed
+`asdf`              Play notes one after the other quickly
+`a s d f`           Play each note after a short pause
+`[as] [df]`         Play “as” together, short pause, then “df” together
+`as|df`             Pause for “|”
+`as| df`            Long pause for “|” with one extra space
+`as | df`           Longer pause for “|” with 2 extra spaces
+`as| |df`           Longest pause for 2 “|” with an extra space
+`Paragraph Break`   Extended pause
