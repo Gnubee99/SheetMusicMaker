@@ -470,8 +470,8 @@
                 const leftMargin = 50;
                 const rightMargin = 50;
                 const usableWidth = pageWidth - leftMargin - rightMargin;
-                const startX = 160; // After clef and time signature
                 const clefWidth = 110; // Space for clef and time signature
+                const startX = leftMargin + clefWidth; // Absolute position after clef and time signature
                 
                 // Calculate note widths based on duration
                 function getNoteWidth(duration) {
@@ -483,7 +483,7 @@
                 // Group notes into lines that fit within the page width
                 const noteLines = [];
                 let currentLine = [];
-                let currentLineWidth = startX - leftMargin;
+                let currentLineWidth = clefWidth; // Start with space taken by clef
                 
                 notes.forEach((noteData) => {
                     const noteWidth = getNoteWidth(noteData.duration);
@@ -493,7 +493,7 @@
                         // Start a new line
                         noteLines.push(currentLine);
                         currentLine = [noteData];
-                        currentLineWidth = startX - leftMargin + noteWidth;
+                        currentLineWidth = clefWidth + noteWidth;
                     } else {
                         // Add to current line
                         currentLine.push(noteData);
@@ -533,7 +533,7 @@
                     }
                     
                     // Draw notes for this line
-                    let x = leftMargin + clefWidth;
+                    let x = startX;
                     
                     // Helper function to draw a single note
                     function drawNote(noteData, xPos, duration, isPartOfChord = false) {
