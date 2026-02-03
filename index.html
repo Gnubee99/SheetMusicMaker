@@ -245,21 +245,23 @@
                 <h2>Enter Virtual Piano Notation</h2>
                 <div class="help-text">
                     <strong>How to use:</strong><br>
-                    • Use lowercase letters (a-z) for lower octave notes<br>
-                    • Use uppercase letters (A-Z) for higher octave notes<br>
-                    • Numbers (1-9, 0) are also supported for additional octaves<br>
-                    • Use spaces to separate notes<br>
-                    • Use | to create measure breaks (optional)<br>
-                    • Example: "a s d f g | h j k"
+                    • <strong>Lower Octave (C2-B3):</strong> White keys: 1 2 3 4 5 6 7 8 9 0 q w e r | Black keys: ! @ $ % ^ * ( Q W E<br>
+                    • <strong>Middle Octave (C4-D5):</strong> White keys: t y u i o p a s d | Black keys: T Y I O P S D<br>
+                    • <strong>Upper Octave (E5-C7):</strong> White keys: f g h j k l z x c v b n m | Black keys: G H J L Z C B<br>
+                    • <strong>Chords:</strong> Use square brackets [asdf] to play notes simultaneously<br>
+                    • <strong>Note Duration:</strong> Space = quarter note | Pipe '|' = half note | Pipe with spaces ' | ' = whole note<br>
+                    • Example: "t y u| i o p | a s d" or "[tyui] o p a"
                 </div>
 
-                <textarea id="pianoInput" placeholder="Enter Virtual Piano notation here (e.g., a s d f g h j k)">a s d f g f d s a</textarea>
+                <textarea id="pianoInput" placeholder="Enter Virtual Piano notation here (e.g., [tyui] o p a s d)">t y u i o p a s d</textarea>
 
                 <div class="examples">
                     <h3>Try These Examples (click to use):</h3>
-                    <code onclick="useExample(this)">a s d f g f d s a</code>
-                    <code onclick="useExample(this)">q w e r t y u i o p</code>
-                    <code onclick="useExample(this)">a s d | f g h | j k l</code>
+                    <code onclick="useExample(this)">t y u i o p a s d</code>
+                    <code onclick="useExample(this)">1 2 3 4 5 6 7 8 9 0</code>
+                    <code onclick="useExample(this)">[tyu] [iop] [asd]</code>
+                    <code onclick="useExample(this)">t y| u i| o p| a</code>
+                    <code onclick="useExample(this)">t y u | i o p | a s d</code>
                 </div>
 
                 <div class="button-group">
@@ -283,56 +285,77 @@
     <script>
         // Virtual Piano key to note mapping
         const virtualPianoMapping = {
-            // Lower octave (white keys)
-            'z': { note: 'C', octave: 3, y: 90 },
-            'x': { note: 'D', octave: 3, y: 85 },
-            'c': { note: 'E', octave: 3, y: 80 },
-            'v': { note: 'F', octave: 3, y: 75 },
-            'b': { note: 'G', octave: 3, y: 70 },
-            'n': { note: 'A', octave: 3, y: 65 },
-            'm': { note: 'B', octave: 3, y: 60 },
+            // Lower Octave (C2-B3) - White keys: 1 2 3 4 5 6 7 8 9 0 q w e r
+            '1': { note: 'C', octave: 2, y: 120 },
+            '2': { note: 'D', octave: 2, y: 115 },
+            '3': { note: 'E', octave: 2, y: 110 },
+            '4': { note: 'F', octave: 2, y: 105 },
+            '5': { note: 'G', octave: 2, y: 100 },
+            '6': { note: 'A', octave: 2, y: 95 },
+            '7': { note: 'B', octave: 2, y: 90 },
+            '8': { note: 'C', octave: 3, y: 85 },
+            '9': { note: 'D', octave: 3, y: 80 },
+            '0': { note: 'E', octave: 3, y: 75 },
+            'q': { note: 'F', octave: 3, y: 70 },
+            'w': { note: 'G', octave: 3, y: 65 },
+            'e': { note: 'A', octave: 3, y: 60 },
+            'r': { note: 'B', octave: 3, y: 55 },
             
-            // Middle octave (home row - white keys)
-            'a': { note: 'C', octave: 4, y: 55 },
-            's': { note: 'D', octave: 4, y: 50 },
-            'd': { note: 'E', octave: 4, y: 45 },
-            'f': { note: 'F', octave: 4, y: 40 },
-            'g': { note: 'G', octave: 4, y: 35 },
-            'h': { note: 'A', octave: 4, y: 30 },
-            'j': { note: 'B', octave: 4, y: 25 },
-            'k': { note: 'C', octave: 5, y: 20 },
-            'l': { note: 'D', octave: 5, y: 15 },
+            // Lower Octave (C2-B3) - Black keys (sharps): ! @ $ % ^ * ( Q W E
+            '!': { note: 'C#', octave: 2, y: 117.5, sharp: true },
+            '@': { note: 'D#', octave: 2, y: 112.5, sharp: true },
+            '$': { note: 'F#', octave: 2, y: 102.5, sharp: true },
+            '%': { note: 'G#', octave: 2, y: 97.5, sharp: true },
+            '^': { note: 'A#', octave: 2, y: 92.5, sharp: true },
+            '*': { note: 'C#', octave: 3, y: 82.5, sharp: true },
+            '(': { note: 'D#', octave: 3, y: 77.5, sharp: true },
+            'Q': { note: 'F#', octave: 3, y: 67.5, sharp: true },
+            'W': { note: 'G#', octave: 3, y: 62.5, sharp: true },
+            'E': { note: 'A#', octave: 3, y: 57.5, sharp: true },
             
-            // Upper octave (top row - white keys)
-            'q': { note: 'E', octave: 5, y: 10 },
-            'w': { note: 'F', octave: 5, y: 5 },
-            'e': { note: 'G', octave: 5, y: 0 },
-            'r': { note: 'A', octave: 5, y: -5 },
-            't': { note: 'B', octave: 5, y: -10 },
-            'y': { note: 'C', octave: 6, y: -15 },
-            'u': { note: 'D', octave: 6, y: -20 },
-            'i': { note: 'E', octave: 6, y: -25 },
-            'o': { note: 'F', octave: 6, y: -30 },
-            'p': { note: 'G', octave: 6, y: -35 },
+            // Middle Octave (C4-D5) - White keys: t y u i o p a s d
+            't': { note: 'C', octave: 4, y: 50 },
+            'y': { note: 'D', octave: 4, y: 45 },
+            'u': { note: 'E', octave: 4, y: 40 },
+            'i': { note: 'F', octave: 4, y: 35 },
+            'o': { note: 'G', octave: 4, y: 30 },
+            'p': { note: 'A', octave: 4, y: 25 },
+            'a': { note: 'B', octave: 4, y: 20 },
+            's': { note: 'C', octave: 5, y: 15 },
+            'd': { note: 'D', octave: 5, y: 10 },
             
-            // Black keys (sharps) - similar pattern
-            'A': { note: 'C#', octave: 4, y: 52.5, sharp: true },
-            'S': { note: 'D#', octave: 4, y: 47.5, sharp: true },
-            'F': { note: 'F#', octave: 4, y: 37.5, sharp: true },
-            'G': { note: 'G#', octave: 4, y: 32.5, sharp: true },
-            'H': { note: 'A#', octave: 4, y: 27.5, sharp: true },
+            // Middle Octave (C4-D5) - Black keys (sharps): T Y I O P S D
+            'T': { note: 'C#', octave: 4, y: 47.5, sharp: true },
+            'Y': { note: 'D#', octave: 4, y: 42.5, sharp: true },
+            'I': { note: 'F#', octave: 4, y: 32.5, sharp: true },
+            'O': { note: 'G#', octave: 4, y: 27.5, sharp: true },
+            'P': { note: 'A#', octave: 4, y: 22.5, sharp: true },
+            'S': { note: 'C#', octave: 5, y: 12.5, sharp: true },
+            'D': { note: 'D#', octave: 5, y: 7.5, sharp: true },
             
-            // Numbers
-            '1': { note: 'C', octave: 3, y: 90 },
-            '2': { note: 'D', octave: 3, y: 85 },
-            '3': { note: 'E', octave: 3, y: 80 },
-            '4': { note: 'F', octave: 3, y: 75 },
-            '5': { note: 'G', octave: 3, y: 70 },
-            '6': { note: 'A', octave: 3, y: 65 },
-            '7': { note: 'B', octave: 3, y: 60 },
-            '8': { note: 'C', octave: 4, y: 55 },
-            '9': { note: 'D', octave: 4, y: 50 },
-            '0': { note: 'E', octave: 4, y: 45 }
+            // Upper Octave (E5-C7) - White keys: f g h j k l z x c v b n m
+            'f': { note: 'E', octave: 5, y: 5 },
+            'g': { note: 'F', octave: 5, y: 0 },
+            'h': { note: 'G', octave: 5, y: -5 },
+            'j': { note: 'A', octave: 5, y: -10 },
+            'k': { note: 'B', octave: 5, y: -15 },
+            'l': { note: 'C', octave: 6, y: -20 },
+            'z': { note: 'D', octave: 6, y: -25 },
+            'x': { note: 'E', octave: 6, y: -30 },
+            'c': { note: 'F', octave: 6, y: -35 },
+            'v': { note: 'G', octave: 6, y: -40 },
+            'b': { note: 'A', octave: 6, y: -45 },
+            'n': { note: 'B', octave: 6, y: -50 },
+            'm': { note: 'C', octave: 7, y: -55 },
+            
+            // Upper Octave (E5-C7) - Black keys (sharps): G H J L Z C B
+            'G': { note: 'F#', octave: 5, y: -2.5, sharp: true },
+            'H': { note: 'G#', octave: 5, y: -7.5, sharp: true },
+            'J': { note: 'A#', octave: 5, y: -12.5, sharp: true },
+            'L': { note: 'C#', octave: 6, y: -22.5, sharp: true },
+            'Z': { note: 'D#', octave: 6, y: -27.5, sharp: true },
+            'C': { note: 'F#', octave: 6, y: -37.5, sharp: true },
+            'B': { note: 'A#', octave: 6, y: -47.5, sharp: true }
         };
 
         function useExample(element) {
@@ -340,15 +363,75 @@
         }
 
         function parseVirtualPianoInput(input) {
-            const tokens = input.trim().split(/[\s|]+/).filter(token => token.length > 0);
             const notes = [];
+            let i = 0;
             
-            for (const token of tokens) {
-                for (const char of token) {
-                    if (virtualPianoMapping[char]) {
-                        notes.push({ ...virtualPianoMapping[char], key: char });
+            while (i < input.length) {
+                // Check for square brackets (chords)
+                if (input[i] === '[') {
+                    const closeIndex = input.indexOf(']', i);
+                    if (closeIndex !== -1) {
+                        const chordContent = input.substring(i + 1, closeIndex);
+                        const chordNotes = [];
+                        for (const char of chordContent) {
+                            if (virtualPianoMapping[char]) {
+                                chordNotes.push({ ...virtualPianoMapping[char], key: char });
+                            }
+                        }
+                        if (chordNotes.length > 0) {
+                            // Add chord with default quarter note duration
+                            // Duration can be changed to half/whole by pipe symbol after the chord
+                            notes.push({ isChord: true, notes: chordNotes, duration: 'quarter' });
+                        }
+                        i = closeIndex + 1;
+                        continue;
                     }
                 }
+                
+                // Check for pipe (half note or whole note marker)
+                if (input[i] === '|') {
+                    // Check if previous note exists to apply duration
+                    if (notes.length > 0) {
+                        // Check for whole note pattern: ' | ' (space-pipe-space with at least 2 total spaces around it)
+                        // Count spaces before pipe
+                        let spacesBefore = 0;
+                        let j = i - 1;
+                        while (j >= 0 && input[j] === ' ') {
+                            spacesBefore++;
+                            j--;
+                        }
+                        
+                        // Count spaces after pipe
+                        let spacesAfter = 0;
+                        j = i + 1;
+                        while (j < input.length && input[j] === ' ') {
+                            spacesAfter++;
+                            j++;
+                        }
+                        
+                        // Whole note if we have space on both sides (pattern: ' | ')
+                        if (spacesBefore >= 1 && spacesAfter >= 1) {
+                            notes[notes.length - 1].duration = 'whole';
+                        } else {
+                            // Regular pipe = half note
+                            notes[notes.length - 1].duration = 'half';
+                        }
+                    }
+                    i++;
+                    continue;
+                }
+                
+                // Check for regular note
+                if (virtualPianoMapping[input[i]]) {
+                    notes.push({ 
+                        ...virtualPianoMapping[input[i]], 
+                        key: input[i],
+                        isChord: false,
+                        duration: 'quarter'
+                    });
+                }
+                
+                i++;
             }
             
             return notes;
@@ -402,43 +485,100 @@
                 
                 // Draw notes
                 let x = 160;
-                notes.forEach((noteData, index) => {
+                
+                // Helper function to draw a single note
+                function drawNote(noteData, xPos, duration, isPartOfChord = false) {
                     const noteY = staffTop + noteData.y;
                     
-                    // Draw note head (ellipse)
-                    svg += `<ellipse cx="${x}" cy="${noteY}" rx="6" ry="5" class="note-head" fill="#000" transform="rotate(-20 ${x} ${noteY})"/>`;
+                    // Determine if note should be filled or hollow based on duration
+                    const isFilled = duration === 'quarter';
                     
-                    // Draw stem (going up)
-                    svg += `<line x1="${x + 5}" y1="${noteY}" x2="${x + 5}" y2="${noteY - 30}" class="note-stem" stroke="#000" stroke-width="1.5"/>`;
+                    // Draw note head
+                    if (isFilled) {
+                        svg += `<ellipse cx="${xPos}" cy="${noteY}" rx="6" ry="5" class="note-head" fill="#000" transform="rotate(-20 ${xPos} ${noteY})"/>`;
+                    } else {
+                        // Hollow note for half and whole notes
+                        svg += `<ellipse cx="${xPos}" cy="${noteY}" rx="6" ry="5" class="note-head" fill="#fff" stroke="#000" stroke-width="1.5" transform="rotate(-20 ${xPos} ${noteY})"/>`;
+                    }
+                    
+                    // Draw stem (except for whole notes)
+                    if (duration !== 'whole') {
+                        svg += `<line x1="${xPos + 5}" y1="${noteY}" x2="${xPos + 5}" y2="${noteY - 30}" class="note-stem" stroke="#000" stroke-width="1.5"/>`;
+                    }
                     
                     // Add sharp symbol if needed
                     if (noteData.sharp) {
-                        svg += `<text x="${x - 15}" y="${noteY + 5}" font-size="20" font-family="serif">♯</text>`;
+                        svg += `<text x="${xPos - 15}" y="${noteY + 5}" font-size="20" font-family="serif">♯</text>`;
                     }
                     
                     // Add ledger lines if note is above or below staff
                     if (noteY < staffTop) {
                         for (let ly = staffTop - staffSpacing; ly >= noteY - 2; ly -= staffSpacing) {
-                            svg += `<line x1="${x - 10}" y1="${ly}" x2="${x + 10}" y2="${ly}" stroke="#000" stroke-width="1"/>`;
+                            svg += `<line x1="${xPos - 10}" y1="${ly}" x2="${xPos + 10}" y2="${ly}" stroke="#000" stroke-width="1"/>`;
                         }
                     } else if (noteY > staffTop + 4 * staffSpacing) {
                         for (let ly = staffTop + 5 * staffSpacing; ly <= noteY + 2; ly += staffSpacing) {
-                            svg += `<line x1="${x - 10}" y1="${ly}" x2="${x + 10}" y2="${ly}" stroke="#000" stroke-width="1"/>`;
+                            svg += `<line x1="${xPos - 10}" y1="${ly}" x2="${xPos + 10}" y2="${ly}" stroke="#000" stroke-width="1"/>`;
                         }
                     }
                     
-                    // Draw note label below staff
-                    svg += `<text x="${x - 8}" y="${height - 80}" font-size="12" font-family="monospace" fill="#666">${noteData.note}${noteData.octave}</text>`;
-                    svg += `<text x="${x - 8}" y="${height - 65}" font-size="10" font-family="monospace" fill="#999">(${noteData.key})</text>`;
-                    
-                    x += 60;
+                    // Draw note label below staff (only if not part of chord or first in chord)
+                    if (!isPartOfChord) {
+                        svg += `<text x="${xPos - 8}" y="${height - 80}" font-size="12" font-family="monospace" fill="#666">${noteData.note}${noteData.octave}</text>`;
+                        svg += `<text x="${xPos - 8}" y="${height - 65}" font-size="10" font-family="monospace" fill="#999">(${noteData.key})</text>`;
+                    }
+                }
+                
+                notes.forEach((noteData, index) => {
+                    if (noteData.isChord) {
+                        // Draw chord (multiple notes at same x position)
+                        const chordNotes = noteData.notes;
+                        chordNotes.forEach((note, chordIndex) => {
+                            drawNote(note, x, noteData.duration, true);
+                        });
+                        
+                        // Add chord label
+                        const chordKeys = chordNotes.map(n => n.key).join('');
+                        svg += `<text x="${x - 10}" y="${height - 80}" font-size="12" font-family="monospace" fill="#666">[${chordKeys}]</text>`;
+                        
+                        // Adjust x based on duration
+                        if (noteData.duration === 'whole') {
+                            x += 120;
+                        } else if (noteData.duration === 'half') {
+                            x += 90;
+                        } else {
+                            x += 60;
+                        }
+                    } else {
+                        // Draw single note
+                        drawNote(noteData, x, noteData.duration);
+                        
+                        // Adjust x based on duration
+                        if (noteData.duration === 'whole') {
+                            x += 120;
+                        } else if (noteData.duration === 'half') {
+                            x += 90;
+                        } else {
+                            x += 60;
+                        }
+                    }
                 });
                 
                 svg += '</svg>';
                 
                 sheetMusicDiv.innerHTML = svg;
                 
-                successDiv.textContent = `Successfully generated sheet music for ${notes.length} notes!`;
+                // Count total notes (including notes in chords)
+                let totalNotes = 0;
+                notes.forEach(n => {
+                    if (n.isChord) {
+                        totalNotes += n.notes.length;
+                    } else {
+                        totalNotes += 1;
+                    }
+                });
+                
+                successDiv.textContent = `Successfully generated sheet music for ${totalNotes} note${totalNotes !== 1 ? 's' : ''}!`;
                 successDiv.style.display = 'block';
                 document.getElementById('exportPdfBtn').disabled = false;
                 document.getElementById('exportImageBtn').disabled = false;
