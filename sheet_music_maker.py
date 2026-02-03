@@ -113,15 +113,15 @@ class SheetMusicMaker:
         parts = re.split(r'(\|+)', text)
         
         for i, part in enumerate(parts):
-            if not part or part.strip() == '':
+            if not part.strip():
                 continue
             
             # Check if this is a pipe symbol
             if re.match(r'\|+', part):
                 # Count pipes and surrounding spaces
                 pipe_count = len(part)
-                prev_space = len(parts[i-1]) - len(parts[i-1].rstrip()) if i > 0 else 0
-                next_space = len(parts[i+1]) - len(parts[i+1].lstrip()) if i < len(parts)-1 else 0
+                prev_space = (len(parts[i-1]) - len(parts[i-1].rstrip())) if i > 0 else 0
+                next_space = (len(parts[i+1]) - len(parts[i+1].lstrip())) if i < len(parts)-1 else 0
                 
                 # Create pause note based on spacing
                 pause_length = 'short'
@@ -149,14 +149,15 @@ class SheetMusicMaker:
         bracket_pattern = r'\[([^\]]+)\]'
         
         # Split into tokens (bracketed and non-bracketed)
+        # Tokens at odd indices are inside brackets, even indices are outside
         tokens = re.split(bracket_pattern, text)
         
-        for token in tokens:
-            if not token or not token.strip():
+        for i, token in enumerate(tokens):
+            if not token.strip():
                 continue
             
-            # Check if this was inside brackets
-            is_bracketed = '[' + token + ']' in text or token in re.findall(bracket_pattern, text)
+            # Tokens at odd indices are the captured groups (inside brackets)
+            is_bracketed = (i % 2 == 1)
             
             if is_bracketed:
                 # Bracketed group - check for spaces
