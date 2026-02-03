@@ -36,18 +36,16 @@ Create printable sheet music based on input provided by virtualpiano files.
 
 ## Virtual Piano Key Mapping
 
-### Lower Octave (C3-B3)
+### Lower Octave (C3-E4)
 - White keys: `z x c v b n m`
-- Black keys (sharps): `Z X V B N`
 - Numbers: `1 2 3 4 5 6 7 8 9 0`
 
 ### Middle Octave (C4-D5)
 - White keys: `a s d f g h j k l`
-- Black keys (sharps): `A S F G H K L`
+- Black keys (sharps): `A S F G H`
 
 ### Upper Octave (E5-G6)
 - White keys: `q w e r t y u i o p`
-- Black keys (sharps): `Q W E R Y U I`
 
 ## Example Inputs
 
@@ -64,11 +62,6 @@ q w e r t y u i o p
 Upper octave sequence
 
 ```
-A S D F G H J K L
-```
-Sharps and naturals
-
-```
 a s d | f g h | j k l
 ```
 With measure breaks
@@ -76,9 +69,9 @@ With measure breaks
 ## Technical Details
 
 - Built with HTML, CSS, and JavaScript
-- Uses [VexFlow](https://www.vexflow.com/) for music notation rendering
-- Uses html2canvas for image capture
-- Uses jsPDF for PDF generation
+- Uses native SVG rendering for music notation
+- Uses browser's XMLSerializer and Canvas API for image export
+- Uses window.print() for PDF generation
 - No backend required - runs entirely in the browser
 
 ## Browser Compatibility
@@ -106,5 +99,5 @@ MIT License - feel free to use and modify as needed.
 
 ## Credits
 
-- VexFlow for music notation rendering
+- Custom SVG music notation implementation
 - Virtual Piano community for the notation system

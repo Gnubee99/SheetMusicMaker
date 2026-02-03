@@ -461,10 +461,24 @@
 
         function exportToPDF() {
             // Create a new window with the sheet music for printing
-            const svg = document.getElementById('sheetMusic').innerHTML;
+            const svgElement = document.getElementById('sheetMusic').querySelector('svg');
+            if (!svgElement) return;
+            
+            // Clone and sanitize the SVG
+            const svgClone = svgElement.cloneNode(true);
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(svgClone);
+            
             const printWindow = window.open('', '', 'width=800,height=600');
-            printWindow.document.write('<html><head><title>Sheet Music - Print</title><style>body { margin: 20px; } @media print { body { margin: 0; } }</style></head><body>' + svg + '<script>window.onload = function() { window.print(); };<' + '/script></body></html>');
-            printWindow.document.close();
+            const doc = printWindow.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><title>Sheet Music - Print</title>');
+            doc.write('<style>body { margin: 20px; } @media print { body { margin: 0; } }</style>');
+            doc.write('</head><body>');
+            doc.write(svgString);
+            doc.write('<script>window.onload = function() { window.print(); };<' + '/script>');
+            doc.write('</body></html>');
+            doc.close();
         }
 
         function exportToImage() {
@@ -477,8 +491,9 @@
             const ctx = canvas.getContext('2d');
             const img = new Image();
             
-            canvas.width = svg.getAttribute('width');
-            canvas.height = svg.getAttribute('height');
+            // Ensure numeric dimensions
+            canvas.width = parseInt(svg.getAttribute('width'), 10);
+            canvas.height = parseInt(svg.getAttribute('height'), 10);
             
             img.onload = function() {
                 ctx.fillStyle = 'white';
