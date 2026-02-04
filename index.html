@@ -339,7 +339,7 @@
                         </div>
                     </div>
                     <div class="checkbox-group">
-                        <input type="checkbox" id="grandStaff">
+                        <input type="checkbox" id="grandStaff" name="grandStaff">
                         <label for="grandStaff">Use Grand Staff (Treble + Bass)</label>
                     </div>
                 </div>
@@ -571,7 +571,11 @@
                 }
                 
                 // Parse time signature
-                const [beatsPerMeasure, beatValue] = timeSignature.split('/').map(Number);
+                const timeSignatureParts = timeSignature.split('/');
+                if (timeSignatureParts.length !== 2 || isNaN(timeSignatureParts[0]) || isNaN(timeSignatureParts[1])) {
+                    throw new Error('Invalid time signature format');
+                }
+                const [beatsPerMeasure, beatValue] = timeSignatureParts.map(Number);
                 
                 // Group notes into measures
                 const measures = groupNotesIntoMeasures(notes, beatsPerMeasure);
@@ -714,6 +718,14 @@
             }
         }
 
+        // Helper function to get rest duration from beats
+        function getRestDurationFromBeats(beats) {
+            if (beats === 1) return 'quarter';
+            if (beats === 2) return 'half';
+            if (beats >= 4) return 'whole';
+            return 'quarter'; // default
+        }
+
         // Helper function to draw staff lines
         function drawStaff(staffTop, staffSpacing, width) {
             let svg = '';
@@ -745,7 +757,7 @@
                         const restBeats = beatsPerMeasure - currentBeats;
                         currentMeasure.push({
                             isRest: true,
-                            duration: restBeats === 1 ? 'quarter' : restBeats === 2 ? 'half' : 'whole'
+                            duration: getRestDurationFromBeats(restBeats)
                         });
                     }
                     if (currentMeasure.length > 0) {
@@ -772,7 +784,7 @@
                     const restBeats = beatsPerMeasure - currentBeats;
                     currentMeasure.push({
                         isRest: true,
-                        duration: restBeats === 1 ? 'quarter' : restBeats === 2 ? 'half' : 'whole'
+                        duration: getRestDurationFromBeats(restBeats)
                     });
                 }
                 measures.push(currentMeasure);
@@ -905,8 +917,8 @@
             let totalWidth = 0;
             let totalHeight = 0;
             svgElements.forEach(svg => {
-                const width = parseFloat(svg.getAttribute('width') || svg.viewBox.baseVal.width);
-                const height = parseFloat(svg.getAttribute('height') || svg.viewBox.baseVal.height);
+                const width = parseFloat(svg.getAttribute('width') || (svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 800));
+                const height = parseFloat(svg.getAttribute('height') || (svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.height : 600));
                 totalWidth = Math.max(totalWidth, width);
                 totalHeight += height;
             });
@@ -928,7 +940,7 @@
                 const url = URL.createObjectURL(svgBlob);
                 
                 img.onload = function() {
-                    const height = parseFloat(svg.getAttribute('height') || svg.viewBox.baseVal.height);
+                    const height = parseFloat(svg.getAttribute('height') || (svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.height : 600));
                     ctx.drawImage(img, 0, yOffset);
                     yOffset += height;
                     URL.revokeObjectURL(url);
