@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Virtual Piano to Sheet Music Converter</title>
-    <!-- OpenSheetMusicDisplay Library -->
-    <script src="https://unpkg.com/opensheetmusicdisplay@1.8.7/build/opensheetmusicdisplay.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -389,9 +387,6 @@
     </div>
 
     <script>
-        // Global OSMD instance
-        let osmd = null;
-
         // Virtual Piano key to note mapping
         const virtualPianoMapping = {
             // Lower Octave (C2-B3) - White keys: 1 2 3 4 5 6 7 8 9 0 q w e r
@@ -546,225 +541,6 @@
             return notes;
         }
 
-        // Convert parsed notes to MusicXML format
-        function generateMusicXML(notes, title, subtitle, timeSignature, useGrandStaff) {
-            const [beats, beatType] = timeSignature.split('/').map(Number);
-            
-            // Calculate measures based on time signature
-            const measures = groupNotesIntoMeasures(notes, beats);
-            
-            // Determine if we need bass clef based on note range
-            const needsBassClef = useGrandStaff && notes.some(n => {
-                if (n.isChord) {
-                    return n.notes.some(note => note.octave < 4);
-                }
-                return n.octave < 4;
-            });
-
-            let xml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
-<score-partwise version="3.1">
-  <work>
-    <work-title>${title || 'Untitled'}</work-title>
-  </work>
-  <identification>
-    <creator type="composer">${subtitle || ''}</creator>
-    <encoding>
-      <software>SheetMusicMaker</software>
-    </encoding>
-  </identification>
-  <part-list>
-    <score-part id="P1">
-      <part-name>${useGrandStaff ? 'Piano' : 'Melody'}</part-name>
-    </score-part>
-  </part-list>
-  <part id="P1">
-`;
-
-            // Generate each measure
-            measures.forEach((measure, index) => {
-                xml += generateMeasureXML(measure, index + 1, beats, beatType, index === 0);
-            });
-
-            xml += `  </part>
-</score-partwise>`;
-
-            return xml;
-        }
-
-        // Group notes into measures based on time signature
-        function groupNotesIntoMeasures(notes, beatsPerMeasure) {
-            const measures = [];
-            let currentMeasure = [];
-            let currentBeats = 0;
-
-            // Duration to beats conversion
-            const durationToBeats = {
-                'quarter': 1,
-                'half': 2,
-                'whole': 4
-            };
-
-            notes.forEach(note => {
-                const noteBeats = durationToBeats[note.duration] || 1;
-                
-                if (currentBeats + noteBeats > beatsPerMeasure) {
-                    // Start new measure
-                    if (currentMeasure.length > 0) {
-                        // Fill rest of measure with rests if needed
-                        if (currentBeats < beatsPerMeasure) {
-                            const restBeats = beatsPerMeasure - currentBeats;
-                            currentMeasure.push({
-                                isRest: true,
-                                duration: restBeats === 1 ? 'quarter' : restBeats === 2 ? 'half' : 'whole'
-                            });
-                        }
-                        measures.push(currentMeasure);
-                    }
-                    currentMeasure = [];
-                    currentBeats = 0;
-                }
-
-                currentMeasure.push(note);
-                currentBeats += noteBeats;
-
-                if (currentBeats >= beatsPerMeasure) {
-                    measures.push(currentMeasure);
-                    currentMeasure = [];
-                    currentBeats = 0;
-                }
-            });
-
-            // Add remaining notes as a measure
-            if (currentMeasure.length > 0) {
-                // Fill with rest if needed
-                if (currentBeats < beatsPerMeasure) {
-                    const restBeats = beatsPerMeasure - currentBeats;
-                    currentMeasure.push({
-                        isRest: true,
-                        duration: restBeats === 1 ? 'quarter' : restBeats === 2 ? 'half' : 'whole'
-                    });
-                }
-                measures.push(currentMeasure);
-            }
-
-            return measures;
-        }
-
-        // Generate MusicXML for a single measure
-        function generateMeasureXML(measure, measureNumber, beats, beatType, isFirstMeasure) {
-            let xml = `    <measure number="${measureNumber}">
-`;
-
-            if (isFirstMeasure) {
-                xml += `      <attributes>
-        <divisions>1</divisions>
-        <key>
-          <fifths>0</fifths>
-        </key>
-        <time>
-          <beats>${beats}</beats>
-          <beat-type>${beatType}</beat-type>
-        </time>
-        <clef>
-          <sign>G</sign>
-          <line>2</line>
-        </clef>
-      </attributes>
-`;
-            }
-
-            // Add notes/chords/rests
-            measure.forEach(item => {
-                if (item.isRest) {
-                    xml += generateRestXML(item.duration);
-                } else if (item.isChord) {
-                    xml += generateChordXML(item);
-                } else {
-                    xml += generateNoteXML(item, false);
-                }
-            });
-
-            xml += `    </measure>
-`;
-            return xml;
-        }
-
-        // Generate MusicXML for a single note
-        function generateNoteXML(note, isChordNote) {
-            const durationMap = {
-                'quarter': 1,
-                'half': 2,
-                'whole': 4
-            };
-
-            const typeMap = {
-                'quarter': 'quarter',
-                'half': 'half',
-                'whole': 'whole'
-            };
-
-            const duration = durationMap[note.duration] || 1;
-            const type = typeMap[note.duration] || 'quarter';
-
-            // Extract note name and alter for sharps
-            let step = note.note.replace('#', '');
-            let alter = note.note.includes('#') ? '<alter>1</alter>' : '';
-
-            let xml = `      <note${isChordNote ? '>\n        <chord/>' : '>'}\n`;
-            xml += `        <pitch>
-          <step>${step}</step>
-          ${alter}
-          <octave>${note.octave}</octave>
-        </pitch>
-        <duration>${duration}</duration>
-        <type>${type}</type>
-`;
-
-            if (note.note.includes('#')) {
-                xml += `        <accidental>sharp</accidental>
-`;
-            }
-
-            xml += `      </note>
-`;
-            return xml;
-        }
-
-        // Generate MusicXML for a chord
-        function generateChordXML(chord) {
-            let xml = '';
-            chord.notes.forEach((note, index) => {
-                xml += generateNoteXML(note, index > 0);
-            });
-            return xml;
-        }
-
-        // Generate MusicXML for a rest
-        function generateRestXML(duration) {
-            const durationMap = {
-                'quarter': 1,
-                'half': 2,
-                'whole': 4
-            };
-
-            const typeMap = {
-                'quarter': 'quarter',
-                'half': 'half',
-                'whole': 'whole'
-            };
-
-            const dur = durationMap[duration] || 1;
-            const type = typeMap[duration] || 'quarter';
-
-            return `      <note>
-        <rest/>
-        <duration>${dur}</duration>
-        <type>${type}</type>
-      </note>
-`;
-        }
-
         async function generateSheetMusic() {
             const input = document.getElementById('pianoInput').value;
             const title = document.getElementById('titleInput').value;
@@ -773,10 +549,11 @@
             const useGrandStaff = document.getElementById('grandStaff').checked;
             const errorDiv = document.getElementById('errorMessage');
             const successDiv = document.getElementById('successMessage');
-            const sheetMusicDiv = document.getElementById('sheetMusic');
+            const sheetMusicDiv = document.getElementById('osmdContainer');
             
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
+            sheetMusicDiv.innerHTML = '';
             
             if (!input.trim()) {
                 errorDiv.textContent = 'Please enter some Virtual Piano notation.';
@@ -793,28 +570,129 @@
                     return;
                 }
                 
-                // Generate MusicXML
-                const musicXML = generateMusicXML(notes, title, subtitle, timeSignature, useGrandStaff);
+                // Parse time signature
+                const [beatsPerMeasure, beatValue] = timeSignature.split('/').map(Number);
                 
-                // Clear previous rendering
-                document.getElementById('osmdContainer').innerHTML = '';
+                // Group notes into measures
+                const measures = groupNotesIntoMeasures(notes, beatsPerMeasure);
                 
-                // Create or recreate OSMD instance
-                const container = document.getElementById('osmdContainer');
-                osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(container, {
-                    autoResize: true,
-                    backend: "svg",
-                    drawTitle: true,
-                    drawSubtitle: true,
-                    drawComposer: true,
-                    drawingParameters: "compacttight"
+                // Determine if we need bass clef
+                const needsBassClef = useGrandStaff && notes.some(n => {
+                    if (n.isChord) {
+                        return n.notes.some(note => note.octave < 4);
+                    }
+                    return n.octave < 4;
                 });
-
-                // Load and render the MusicXML
-                await osmd.load(musicXML);
-                osmd.render();
                 
-                // Count total notes (including notes in chords)
+                // Create enhanced SVG with proper measures and bar lines
+                const svgWidth = Math.max(1200, measures.length * 250);
+                const svgHeight = needsBassClef ? 500 : 350;
+                const staffTop = title || subtitle ? 120 : 80;
+                const staffSpacing = 10;
+                const measureWidth = 200;
+                
+                let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
+                
+                // Add title if provided
+                if (title) {
+                    svg += `<text x="${svgWidth / 2}" y="30" font-size="24" font-family="serif" font-weight="bold" text-anchor="middle">${title}</text>`;
+                }
+                
+                // Add subtitle if provided
+                if (subtitle) {
+                    svg += `<text x="${svgWidth / 2}" y="${title ? 55 : 30}" font-size="16" font-family="serif" font-style="italic" text-anchor="middle">${subtitle}</text>`;
+                }
+                
+                // Draw treble clef staff
+                svg += drawStaff(staffTop, staffSpacing, svgWidth);
+                
+                // Draw bass clef staff if needed
+                let bassStaffTop = 0;
+                if (needsBassClef) {
+                    bassStaffTop = staffTop + 120;
+                    svg += drawStaff(bassStaffTop, staffSpacing, svgWidth);
+                    // Draw bass clef
+                    svg += `<text x="60" y="${bassStaffTop + 35}" font-size="50" font-family="serif">𝄢</text>`;
+                    // Draw brace connecting staves
+                    svg += `<path d="M 40 ${staffTop - 10} Q 35 ${staffTop + (bassStaffTop - staffTop) / 2} 40 ${bassStaffTop + 50}" stroke="#000" stroke-width="2" fill="none"/>`;
+                }
+                
+                // Draw treble clef
+                svg += `<text x="60" y="${staffTop + 35}" font-size="60" font-family="serif">𝄞</text>`;
+                
+                // Draw time signature on treble staff
+                svg += `<text x="120" y="${staffTop + 15}" font-size="20" font-family="serif" font-weight="bold">${beatsPerMeasure}</text>`;
+                svg += `<text x="120" y="${staffTop + 35}" font-size="20" font-family="serif" font-weight="bold">${beatValue}</text>`;
+                
+                // Draw time signature on bass staff if needed
+                if (needsBassClef) {
+                    svg += `<text x="120" y="${bassStaffTop + 15}" font-size="20" font-family="serif" font-weight="bold">${beatsPerMeasure}</text>`;
+                    svg += `<text x="120" y="${bassStaffTop + 35}" font-size="20" font-family="serif" font-weight="bold">${beatValue}</text>`;
+                }
+                
+                // Draw measures with notes and bar lines
+                let x = 170;
+                measures.forEach((measure, measureIndex) => {
+                    const measureStartX = x;
+                    
+                    // Draw notes/rests in measure
+                    measure.forEach((item) => {
+                        if (item.isRest) {
+                            // Draw rest symbol
+                            const restY = staffTop + 20;
+                            svg += drawRest(x, restY, item.duration);
+                            x += getDurationSpacing(item.duration);
+                        } else if (item.isChord) {
+                            // Separate notes by clef if grand staff
+                            if (needsBassClef) {
+                                const trebleNotes = item.notes.filter(n => n.octave >= 4);
+                                const bassNotes = item.notes.filter(n => n.octave < 4);
+                                
+                                trebleNotes.forEach(note => {
+                                    svg += drawNote(note, x, staffTop, staffSpacing, item.duration, true);
+                                });
+                                
+                                bassNotes.forEach(note => {
+                                    svg += drawNote(note, x, bassStaffTop, staffSpacing, item.duration, true);
+                                });
+                            } else {
+                                item.notes.forEach(note => {
+                                    svg += drawNote(note, x, staffTop, staffSpacing, item.duration, true);
+                                });
+                            }
+                            
+                            x += getDurationSpacing(item.duration);
+                        } else {
+                            // Single note
+                            const noteStaffTop = (needsBassClef && item.octave < 4) ? bassStaffTop : staffTop;
+                            svg += drawNote(item, x, noteStaffTop, staffSpacing, item.duration, false);
+                            x += getDurationSpacing(item.duration);
+                        }
+                    });
+                    
+                    // Draw bar line at end of measure
+                    svg += `<line x1="${x - 10}" y1="${staffTop}" x2="${x - 10}" y2="${staffTop + 40}" stroke="#000" stroke-width="2"/>`;
+                    if (needsBassClef) {
+                        svg += `<line x1="${x - 10}" y1="${bassStaffTop}" x2="${x - 10}" y2="${bassStaffTop + 40}" stroke="#000" stroke-width="2"/>`;
+                    }
+                    
+                    // Add extra spacing between measures
+                    x += 40;
+                });
+                
+                // Draw final double bar line
+                svg += `<line x1="${x - 35}" y1="${staffTop}" x2="${x - 35}" y2="${staffTop + 40}" stroke="#000" stroke-width="2"/>`;
+                svg += `<line x1="${x - 30}" y1="${staffTop}" x2="${x - 30}" y2="${staffTop + 40}" stroke="#000" stroke-width="3"/>`;
+                if (needsBassClef) {
+                    svg += `<line x1="${x - 35}" y1="${bassStaffTop}" x2="${x - 35}" y2="${bassStaffTop + 40}" stroke="#000" stroke-width="2"/>`;
+                    svg += `<line x1="${x - 30}" y1="${bassStaffTop}" x2="${x - 30}" y2="${bassStaffTop + 40}" stroke="#000" stroke-width="3"/>`;
+                }
+                
+                svg += '</svg>';
+                
+                sheetMusicDiv.innerHTML = svg;
+                
+                // Count total notes
                 let totalNotes = 0;
                 notes.forEach(n => {
                     if (n.isChord) {
@@ -835,7 +713,135 @@
                 errorDiv.style.display = 'block';
             }
         }
+
+        // Helper function to draw staff lines
+        function drawStaff(staffTop, staffSpacing, width) {
+            let svg = '';
+            for (let i = 0; i < 5; i++) {
+                const y = staffTop + i * staffSpacing;
+                svg += `<line x1="50" y1="${y}" x2="${width - 50}" y2="${y}" class="staff-line" stroke="#000" stroke-width="1"/>`;
             }
+            return svg;
+        }
+
+        // Helper function to group notes into measures
+        function groupNotesIntoMeasures(notes, beatsPerMeasure) {
+            const measures = [];
+            let currentMeasure = [];
+            let currentBeats = 0;
+
+            const durationToBeats = {
+                'quarter': 1,
+                'half': 2,
+                'whole': 4
+            };
+
+            notes.forEach(note => {
+                const noteBeats = durationToBeats[note.duration] || 1;
+                
+                if (currentBeats + noteBeats > beatsPerMeasure) {
+                    // Fill rest of measure with rest if needed
+                    if (currentBeats < beatsPerMeasure && currentMeasure.length > 0) {
+                        const restBeats = beatsPerMeasure - currentBeats;
+                        currentMeasure.push({
+                            isRest: true,
+                            duration: restBeats === 1 ? 'quarter' : restBeats === 2 ? 'half' : 'whole'
+                        });
+                    }
+                    if (currentMeasure.length > 0) {
+                        measures.push(currentMeasure);
+                    }
+                    currentMeasure = [];
+                    currentBeats = 0;
+                }
+
+                currentMeasure.push(note);
+                currentBeats += noteBeats;
+
+                if (currentBeats >= beatsPerMeasure) {
+                    measures.push(currentMeasure);
+                    currentMeasure = [];
+                    currentBeats = 0;
+                }
+            });
+
+            // Add remaining notes
+            if (currentMeasure.length > 0) {
+                // Fill with rest if needed
+                if (currentBeats < beatsPerMeasure) {
+                    const restBeats = beatsPerMeasure - currentBeats;
+                    currentMeasure.push({
+                        isRest: true,
+                        duration: restBeats === 1 ? 'quarter' : restBeats === 2 ? 'half' : 'whole'
+                    });
+                }
+                measures.push(currentMeasure);
+            }
+
+            return measures;
+        }
+
+        // Helper function to draw a note
+        function drawNote(noteData, xPos, staffTop, staffSpacing, duration, isPartOfChord) {
+            let svg = '';
+            const noteY = staffTop + noteData.y;
+            const isFilled = duration === 'quarter';
+            
+            // Draw note head
+            if (isFilled) {
+                svg += `<ellipse cx="${xPos}" cy="${noteY}" rx="6" ry="5" fill="#000" transform="rotate(-20 ${xPos} ${noteY})"/>`;
+            } else {
+                svg += `<ellipse cx="${xPos}" cy="${noteY}" rx="6" ry="5" fill="#fff" stroke="#000" stroke-width="1.5" transform="rotate(-20 ${xPos} ${noteY})"/>`;
+            }
+            
+            // Draw stem (except for whole notes)
+            if (duration !== 'whole') {
+                svg += `<line x1="${xPos + 5}" y1="${noteY}" x2="${xPos + 5}" y2="${noteY - 30}" stroke="#000" stroke-width="1.5"/>`;
+            }
+            
+            // Add sharp symbol if needed
+            if (noteData.sharp) {
+                svg += `<text x="${xPos - 15}" y="${noteY + 5}" font-size="20" font-family="serif">♯</text>`;
+            }
+            
+            // Add ledger lines if note is above or below staff
+            if (noteY < staffTop) {
+                for (let ly = staffTop - staffSpacing; ly >= noteY - 2; ly -= staffSpacing) {
+                    svg += `<line x1="${xPos - 10}" y1="${ly}" x2="${xPos + 10}" y2="${ly}" stroke="#000" stroke-width="1"/>`;
+                }
+            } else if (noteY > staffTop + 4 * staffSpacing) {
+                for (let ly = staffTop + 5 * staffSpacing; ly <= noteY + 2; ly += staffSpacing) {
+                    svg += `<line x1="${xPos - 10}" y1="${ly}" x2="${xPos + 10}" y2="${ly}" stroke="#000" stroke-width="1"/>`;
+                }
+            }
+            
+            return svg;
+        }
+
+        // Helper function to draw a rest
+        function drawRest(x, y, duration) {
+            let svg = '';
+            if (duration === 'quarter') {
+                // Quarter rest
+                svg += `<path d="M ${x - 5} ${y - 5} L ${x} ${y + 10} L ${x + 5} ${y - 5}" stroke="#000" stroke-width="2" fill="none"/>`;
+            } else if (duration === 'half') {
+                // Half rest (sits on line)
+                svg += `<rect x="${x - 6}" y="${y}" width="12" height="6" fill="#000"/>`;
+            } else if (duration === 'whole') {
+                // Whole rest (hangs from line)
+                svg += `<rect x="${x - 6}" y="${y - 6}" width="12" height="6" fill="#000"/>`;
+            }
+            return svg;
+        }
+
+        // Helper function to get spacing based on duration
+        function getDurationSpacing(duration) {
+            const spacingMap = {
+                'quarter': 50,
+                'half': 80,
+                'whole': 110
+            };
+            return spacingMap[duration] || 50;
         }
 
         function clearAll() {
