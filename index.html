@@ -58,6 +58,66 @@
             font-size: 1.5em;
         }
 
+        .settings-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .setting-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .setting-group label {
+            display: block;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.95em;
+        }
+
+        .setting-group input,
+        .setting-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .setting-group input:focus,
+        .setting-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+        }
+
         .help-text {
             background: #f0f4ff;
             padding: 15px;
@@ -151,8 +211,14 @@
             padding: 20px;
             border-radius: 8px;
             border: 2px solid #e0e0e0;
-            min-height: 300px;
+            min-height: 400px;
             overflow-x: auto;
+            overflow-y: auto;
+        }
+
+        #osmdContainer {
+            width: 100%;
+            min-height: 400px;
         }
 
         .message {
@@ -242,6 +308,42 @@
 
         <div class="content">
             <div class="input-section">
+                <h2>Music Settings</h2>
+                <div class="settings-section">
+                    <div class="settings-row">
+                        <div class="setting-group">
+                            <label for="titleInput">Title (Optional)</label>
+                            <input type="text" id="titleInput" placeholder="Enter piece title">
+                        </div>
+                        <div class="setting-group">
+                            <label for="subtitleInput">Subtitle (Optional)</label>
+                            <input type="text" id="subtitleInput" placeholder="Enter subtitle or composer">
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="setting-group">
+                            <label for="timeSignature">Time Signature</label>
+                            <select id="timeSignature">
+                                <option value="4/4" selected>4/4 (Common Time)</option>
+                                <option value="3/4">3/4 (Waltz)</option>
+                                <option value="2/4">2/4</option>
+                                <option value="6/8">6/8</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label for="pageSize">Page Size</label>
+                            <select id="pageSize">
+                                <option value="A4" selected>A4</option>
+                                <option value="Letter">Letter</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="grandStaff" name="grandStaff">
+                        <label for="grandStaff">Use Grand Staff (Treble + Bass)</label>
+                    </div>
+                </div>
+
                 <h2>Enter Virtual Piano Notation</h2>
                 <div class="help-text">
                     <strong>How to use:</strong><br>
@@ -277,7 +379,9 @@
 
             <div class="output-section">
                 <h2>Sheet Music</h2>
-                <div id="sheetMusic"></div>
+                <div id="sheetMusic">
+                    <div id="osmdContainer"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -437,11 +541,15 @@
             return notes;
         }
 
-        function generateSheetMusic() {
+        async function generateSheetMusic() {
             const input = document.getElementById('pianoInput').value;
+            const title = document.getElementById('titleInput').value;
+            const subtitle = document.getElementById('subtitleInput').value;
+            const timeSignature = document.getElementById('timeSignature').value;
+            const useGrandStaff = document.getElementById('grandStaff').checked;
             const errorDiv = document.getElementById('errorMessage');
             const successDiv = document.getElementById('successMessage');
-            const sheetMusicDiv = document.getElementById('sheetMusic');
+            const sheetMusicDiv = document.getElementById('osmdContainer');
             
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
@@ -575,7 +683,114 @@
                         if (!isPartOfChord) {
                             svg += `<text x="${xPos - 8}" y="${staffTop + staffHeight + 40}" font-size="12" font-family="monospace" fill="#666">${noteData.note}${noteData.octave}</text>`;
                             svg += `<text x="${xPos - 8}" y="${staffTop + staffHeight + 55}" font-size="10" font-family="monospace" fill="#999">(${noteData.key})</text>`;
+                // Parse time signature
+                const timeSignatureParts = timeSignature.split('/');
+                if (timeSignatureParts.length !== 2 || isNaN(timeSignatureParts[0]) || isNaN(timeSignatureParts[1])) {
+                    throw new Error('Invalid time signature format');
+                }
+                const [beatsPerMeasure, beatValue] = timeSignatureParts.map(Number);
+                
+                // Group notes into measures
+                const measures = groupNotesIntoMeasures(notes, beatsPerMeasure);
+                
+                // Determine if we need bass clef
+                const needsBassClef = useGrandStaff && notes.some(n => {
+                    if (n.isChord) {
+                        return n.notes.some(note => note.octave < 4);
+                    }
+                    return n.octave < 4;
+                });
+                
+                // Create enhanced SVG with proper measures and bar lines
+                const svgWidth = Math.max(1200, measures.length * 250);
+                const svgHeight = needsBassClef ? 500 : 350;
+                const staffTop = title || subtitle ? 120 : 80;
+                const staffSpacing = 10;
+                const measureWidth = 200;
+                
+                let svg = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
+                
+                // Add title if provided
+                if (title) {
+                    svg += `<text x="${svgWidth / 2}" y="30" font-size="24" font-family="serif" font-weight="bold" text-anchor="middle">${title}</text>`;
+                }
+                
+                // Add subtitle if provided
+                if (subtitle) {
+                    svg += `<text x="${svgWidth / 2}" y="${title ? 55 : 30}" font-size="16" font-family="serif" font-style="italic" text-anchor="middle">${subtitle}</text>`;
+                }
+                
+                // Draw treble clef staff
+                svg += drawStaff(staffTop, staffSpacing, svgWidth);
+                
+                // Draw bass clef staff if needed
+                let bassStaffTop = 0;
+                if (needsBassClef) {
+                    bassStaffTop = staffTop + 120;
+                    svg += drawStaff(bassStaffTop, staffSpacing, svgWidth);
+                    // Draw bass clef
+                    svg += `<text x="60" y="${bassStaffTop + 35}" font-size="50" font-family="serif">𝄢</text>`;
+                    // Draw brace connecting staves
+                    svg += `<path d="M 40 ${staffTop - 10} Q 35 ${staffTop + (bassStaffTop - staffTop) / 2} 40 ${bassStaffTop + 50}" stroke="#000" stroke-width="2" fill="none"/>`;
+                }
+                
+                // Draw treble clef
+                svg += `<text x="60" y="${staffTop + 35}" font-size="60" font-family="serif">𝄞</text>`;
+                
+                // Draw time signature on treble staff
+                svg += `<text x="120" y="${staffTop + 15}" font-size="20" font-family="serif" font-weight="bold">${beatsPerMeasure}</text>`;
+                svg += `<text x="120" y="${staffTop + 35}" font-size="20" font-family="serif" font-weight="bold">${beatValue}</text>`;
+                
+                // Draw time signature on bass staff if needed
+                if (needsBassClef) {
+                    svg += `<text x="120" y="${bassStaffTop + 15}" font-size="20" font-family="serif" font-weight="bold">${beatsPerMeasure}</text>`;
+                    svg += `<text x="120" y="${bassStaffTop + 35}" font-size="20" font-family="serif" font-weight="bold">${beatValue}</text>`;
+                }
+                
+                // Draw measures with notes and bar lines
+                let x = 170;
+                measures.forEach((measure, measureIndex) => {
+                    const measureStartX = x;
+                    
+                    // Draw notes/rests in measure
+                    measure.forEach((item) => {
+                        if (item.isRest) {
+                            // Draw rest symbol
+                            const restY = staffTop + 20;
+                            svg += drawRest(x, restY, item.duration);
+                            x += getDurationSpacing(item.duration);
+                        } else if (item.isChord) {
+                            // Separate notes by clef if grand staff
+                            if (needsBassClef) {
+                                const trebleNotes = item.notes.filter(n => n.octave >= 4);
+                                const bassNotes = item.notes.filter(n => n.octave < 4);
+                                
+                                trebleNotes.forEach(note => {
+                                    svg += drawNote(note, x, staffTop, staffSpacing, item.duration, true);
+                                });
+                                
+                                bassNotes.forEach(note => {
+                                    svg += drawNote(note, x, bassStaffTop, staffSpacing, item.duration, true);
+                                });
+                            } else {
+                                item.notes.forEach(note => {
+                                    svg += drawNote(note, x, staffTop, staffSpacing, item.duration, true);
+                                });
+                            }
+                            
+                            x += getDurationSpacing(item.duration);
+                        } else {
+                            // Single note
+                            const noteStaffTop = (needsBassClef && item.octave < 4) ? bassStaffTop : staffTop;
+                            svg += drawNote(item, x, noteStaffTop, staffSpacing, item.duration, false);
+                            x += getDurationSpacing(item.duration);
                         }
+                    });
+                    
+                    // Draw bar line at end of measure
+                    svg += `<line x1="${x - 10}" y1="${staffTop}" x2="${x - 10}" y2="${staffTop + 40}" stroke="#000" stroke-width="2"/>`;
+                    if (needsBassClef) {
+                        svg += `<line x1="${x - 10}" y1="${bassStaffTop}" x2="${x - 10}" y2="${bassStaffTop + 40}" stroke="#000" stroke-width="2"/>`;
                     }
                     
                     lineNotes.forEach((noteData) => {
@@ -605,11 +820,19 @@
                     currentStaffTop += staffSystemHeight;
                 });
                 
+                // Draw final double bar line
+                svg += `<line x1="${x - 35}" y1="${staffTop}" x2="${x - 35}" y2="${staffTop + 40}" stroke="#000" stroke-width="2"/>`;
+                svg += `<line x1="${x - 30}" y1="${staffTop}" x2="${x - 30}" y2="${staffTop + 40}" stroke="#000" stroke-width="3"/>`;
+                if (needsBassClef) {
+                    svg += `<line x1="${x - 35}" y1="${bassStaffTop}" x2="${x - 35}" y2="${bassStaffTop + 40}" stroke="#000" stroke-width="2"/>`;
+                    svg += `<line x1="${x - 30}" y1="${bassStaffTop}" x2="${x - 30}" y2="${bassStaffTop + 40}" stroke="#000" stroke-width="3"/>`;
+                }
+                
                 svg += '</svg>';
                 
                 sheetMusicDiv.innerHTML = svg;
                 
-                // Count total notes (including notes in chords)
+                // Count total notes
                 let totalNotes = 0;
                 notes.forEach(n => {
                     if (n.isChord) {
@@ -631,6 +854,144 @@
             }
         }
 
+        // Helper function to get rest duration from beats
+        function getRestDurationFromBeats(beats) {
+            if (beats === 1) return 'quarter';
+            if (beats === 2) return 'half';
+            if (beats >= 4) return 'whole';
+            return 'quarter'; // default
+        }
+
+        // Helper function to draw staff lines
+        function drawStaff(staffTop, staffSpacing, width) {
+            let svg = '';
+            for (let i = 0; i < 5; i++) {
+                const y = staffTop + i * staffSpacing;
+                svg += `<line x1="50" y1="${y}" x2="${width - 50}" y2="${y}" class="staff-line" stroke="#000" stroke-width="1"/>`;
+            }
+            return svg;
+        }
+
+        // Helper function to group notes into measures
+        function groupNotesIntoMeasures(notes, beatsPerMeasure) {
+            const measures = [];
+            let currentMeasure = [];
+            let currentBeats = 0;
+
+            const durationToBeats = {
+                'quarter': 1,
+                'half': 2,
+                'whole': 4
+            };
+
+            notes.forEach(note => {
+                const noteBeats = durationToBeats[note.duration] || 1;
+                
+                if (currentBeats + noteBeats > beatsPerMeasure) {
+                    // Fill rest of measure with rest if needed
+                    if (currentBeats < beatsPerMeasure && currentMeasure.length > 0) {
+                        const restBeats = beatsPerMeasure - currentBeats;
+                        currentMeasure.push({
+                            isRest: true,
+                            duration: getRestDurationFromBeats(restBeats)
+                        });
+                    }
+                    if (currentMeasure.length > 0) {
+                        measures.push(currentMeasure);
+                    }
+                    currentMeasure = [];
+                    currentBeats = 0;
+                }
+
+                currentMeasure.push(note);
+                currentBeats += noteBeats;
+
+                if (currentBeats >= beatsPerMeasure) {
+                    measures.push(currentMeasure);
+                    currentMeasure = [];
+                    currentBeats = 0;
+                }
+            });
+
+            // Add remaining notes
+            if (currentMeasure.length > 0) {
+                // Fill with rest if needed
+                if (currentBeats < beatsPerMeasure) {
+                    const restBeats = beatsPerMeasure - currentBeats;
+                    currentMeasure.push({
+                        isRest: true,
+                        duration: getRestDurationFromBeats(restBeats)
+                    });
+                }
+                measures.push(currentMeasure);
+            }
+
+            return measures;
+        }
+
+        // Helper function to draw a note
+        function drawNote(noteData, xPos, staffTop, staffSpacing, duration, isPartOfChord) {
+            let svg = '';
+            const noteY = staffTop + noteData.y;
+            const isFilled = duration === 'quarter';
+            
+            // Draw note head
+            if (isFilled) {
+                svg += `<ellipse cx="${xPos}" cy="${noteY}" rx="6" ry="5" fill="#000" transform="rotate(-20 ${xPos} ${noteY})"/>`;
+            } else {
+                svg += `<ellipse cx="${xPos}" cy="${noteY}" rx="6" ry="5" fill="#fff" stroke="#000" stroke-width="1.5" transform="rotate(-20 ${xPos} ${noteY})"/>`;
+            }
+            
+            // Draw stem (except for whole notes)
+            if (duration !== 'whole') {
+                svg += `<line x1="${xPos + 5}" y1="${noteY}" x2="${xPos + 5}" y2="${noteY - 30}" stroke="#000" stroke-width="1.5"/>`;
+            }
+            
+            // Add sharp symbol if needed
+            if (noteData.sharp) {
+                svg += `<text x="${xPos - 15}" y="${noteY + 5}" font-size="20" font-family="serif">♯</text>`;
+            }
+            
+            // Add ledger lines if note is above or below staff
+            if (noteY < staffTop) {
+                for (let ly = staffTop - staffSpacing; ly >= noteY - 2; ly -= staffSpacing) {
+                    svg += `<line x1="${xPos - 10}" y1="${ly}" x2="${xPos + 10}" y2="${ly}" stroke="#000" stroke-width="1"/>`;
+                }
+            } else if (noteY > staffTop + 4 * staffSpacing) {
+                for (let ly = staffTop + 5 * staffSpacing; ly <= noteY + 2; ly += staffSpacing) {
+                    svg += `<line x1="${xPos - 10}" y1="${ly}" x2="${xPos + 10}" y2="${ly}" stroke="#000" stroke-width="1"/>`;
+                }
+            }
+            
+            return svg;
+        }
+
+        // Helper function to draw a rest
+        function drawRest(x, y, duration) {
+            let svg = '';
+            if (duration === 'quarter') {
+                // Quarter rest
+                svg += `<path d="M ${x - 5} ${y - 5} L ${x} ${y + 10} L ${x + 5} ${y - 5}" stroke="#000" stroke-width="2" fill="none"/>`;
+            } else if (duration === 'half') {
+                // Half rest (sits on line)
+                svg += `<rect x="${x - 6}" y="${y}" width="12" height="6" fill="#000"/>`;
+            } else if (duration === 'whole') {
+                // Whole rest (hangs from line)
+                svg += `<rect x="${x - 6}" y="${y - 6}" width="12" height="6" fill="#000"/>`;
+            }
+            return svg;
+        }
+
+        // Helper function to get spacing based on duration
+        function getDurationSpacing(duration) {
+            const spacingMap = {
+                'quarter': 50,
+                'half': 80,
+                'whole': 110
+            };
+            return spacingMap[duration] || 50;
+        }
+
         function clearAll() {
             document.getElementById('pianoInput').value = '';
             document.getElementById('sheetMusic').innerHTML = '';
@@ -642,63 +1003,105 @@
 
         function exportToPDF() {
             // Create a new window with the sheet music for printing
-            const svgElement = document.getElementById('sheetMusic').querySelector('svg');
-            if (!svgElement) return;
-            
-            // Clone and sanitize the SVG
-            const svgClone = svgElement.cloneNode(true);
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svgClone);
+            const svgElements = document.getElementById('osmdContainer').querySelectorAll('svg');
+            if (!svgElements || svgElements.length === 0) return;
             
             const printWindow = window.open('', '', 'width=800,height=600');
             const doc = printWindow.document;
             doc.open();
             doc.write('<!DOCTYPE html><html><head><title>Sheet Music - Print</title>');
-            doc.write('<style>body { margin: 20px; } @media print { body { margin: 0; } }</style>');
+            
+            // Get page size setting
+            const pageSize = document.getElementById('pageSize').value;
+            const pageStyles = pageSize === 'Letter' 
+                ? 'width: 8.5in; height: 11in;'
+                : 'width: 210mm; height: 297mm;';
+            
+            doc.write(`<style>
+                body { margin: 20px; font-family: serif; }
+                @media print { 
+                    body { margin: 0; }
+                    @page { size: ${pageSize}; margin: 0.5in; }
+                }
+                svg { display: block; margin: 0 auto; }
+            </style>`);
             doc.write('</head><body>');
-            doc.write(svgString);
+            
+            // Add all SVG elements
+            const serializer = new XMLSerializer();
+            svgElements.forEach(svg => {
+                const svgClone = svg.cloneNode(true);
+                const svgString = serializer.serializeToString(svgClone);
+                doc.write(svgString);
+            });
+            
             doc.write('<script>window.onload = function() { window.print(); };<' + '/script>');
             doc.write('</body></html>');
             doc.close();
         }
 
         function exportToImage() {
-            const svg = document.getElementById('sheetMusic').querySelector('svg');
-            if (!svg) return;
+            const svgElements = document.getElementById('osmdContainer').querySelectorAll('svg');
+            if (!svgElements || svgElements.length === 0) return;
             
+            // Combine all SVGs into a single image
             const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svg);
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const img = new Image();
             
-            // Ensure numeric dimensions
-            canvas.width = parseInt(svg.getAttribute('width'), 10);
-            canvas.height = parseInt(svg.getAttribute('height'), 10);
+            // Calculate total dimensions
+            let totalWidth = 0;
+            let totalHeight = 0;
+            svgElements.forEach(svg => {
+                const width = parseFloat(svg.getAttribute('width') || (svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 800));
+                const height = parseFloat(svg.getAttribute('height') || (svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.height : 600));
+                totalWidth = Math.max(totalWidth, width);
+                totalHeight += height;
+            });
             
-            img.onload = function() {
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
+            canvas.width = totalWidth || 800;
+            canvas.height = totalHeight || 600;
+            
+            // Fill white background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            let yOffset = 0;
+            let processedCount = 0;
+            
+            svgElements.forEach((svg, index) => {
+                const img = new Image();
+                const svgString = serializer.serializeToString(svg);
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
                 
-                canvas.toBlob(function(blob) {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'sheet-music.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
+                img.onload = function() {
+                    const height = parseFloat(svg.getAttribute('height') || (svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.height : 600));
+                    ctx.drawImage(img, 0, yOffset);
+                    yOffset += height;
                     URL.revokeObjectURL(url);
+                    processedCount++;
                     
-                    document.getElementById('successMessage').textContent = 'Image downloaded successfully!';
-                    document.getElementById('successMessage').style.display = 'block';
-                });
-            };
-            
-            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(svgBlob);
-            img.src = url;
+                    // When all images are drawn, download
+                    if (processedCount === svgElements.length) {
+                        canvas.toBlob(function(blob) {
+                            const downloadUrl = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = downloadUrl;
+                            a.download = 'sheet-music.png';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(downloadUrl);
+                            
+                            document.getElementById('successMessage').textContent = 'Image downloaded successfully!';
+                            document.getElementById('successMessage').style.display = 'block';
+                        });
+                    }
+                };
+                
+                img.src = url;
+            });
         }
 
         // Enter key to generate

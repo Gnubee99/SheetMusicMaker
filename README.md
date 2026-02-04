@@ -4,8 +4,24 @@ Create printable sheet music based on input provided by virtualpiano files.
 
 ## Features
 
-- ✨ Convert Virtual Piano notation to Western sheet music
+- ✨ Convert Virtual Piano notation to professional-quality sheet music
 - 🎵 Support for multiple octaves (lowercase, uppercase, and numbers)
+- 🎼 **Professional music notation rendering:**
+  - Proper staff lines with treble clef
+  - Time signatures (4/4, 3/4, 2/4, 6/8)
+  - Key signatures
+  - Measure grouping with bar lines
+  - Double bar line at the end
+  - Automatic rest insertion for incomplete measures
+  - Note durations (quarter, half, whole notes)
+  - Sharp accidentals (♯)
+  - Ledger lines for notes outside the staff
+- 🎹 **Grand Staff support:** Dual staff (treble + bass clef) for piano music
+- 📝 **Customization options:**
+  - Add title and subtitle to your sheet music
+  - Choose page size (A4 or Letter)
+  - Select time signature
+- 🎶 **Chord support:** Play multiple notes simultaneously using square brackets
 - 📄 Export to PDF for printing
 - 🖼️ Export to PNG image format
 - 🎨 Beautiful, responsive web interface
@@ -17,20 +33,29 @@ Create printable sheet music based on input provided by virtualpiano files.
    - Simply open `index.html` in any modern web browser
    - Or visit the hosted version (if deployed)
 
-2. **Enter Virtual Piano Notation**
+2. **Configure Music Settings (Optional)**
+   - Enter a title for your piece
+   - Add a subtitle (composer name, etc.)
+   - Select time signature (4/4, 3/4, 2/4, or 6/8)
+   - Choose page size for printing (A4 or Letter)
+   - Enable Grand Staff mode for piano music with both treble and bass clefs
+
+3. **Enter Virtual Piano Notation**
    - Type or paste Virtual Piano notation in the text area
    - Use lowercase letters (a-z) for middle octave notes
    - Use uppercase letters (A-Z) for sharps or higher octaves
    - Use numbers (1-9, 0) for lower octave notes
-   - Separate notes with spaces
-   - Optionally use `|` to create measure breaks
+   - Use spaces to separate notes for quarter note duration
+   - Use `|` after a note for half note duration
+   - Use ` | ` (with spaces) after a note for whole note duration
+   - Use square brackets `[tyu]` to create chords
 
-3. **Generate Sheet Music**
+4. **Generate Sheet Music**
    - Click the "Generate Sheet Music" button
-   - Your notation will be converted to standard music notation
+   - Your notation will be converted to standard music notation with proper measures
    - The sheet music will display below the input area
 
-4. **Export Your Music**
+5. **Export Your Music**
    - Click "Download PDF" to save as a printable PDF
    - Click "Download Image" to save as a PNG image
 
@@ -53,26 +78,42 @@ Create printable sheet music based on input provided by virtualpiano files.
 Try these examples to get started:
 
 ```
-a s d f g f d s a
+t y u i o p a s d
 ```
-Simple C major scale pattern
+Simple melody in C major
 
 ```
-q w e r t y u i o p
+[tyu] [iop] [asd]
 ```
-Upper octave sequence
+Chord progression
 
 ```
-a s d | f g h | j k l
+t y| u i| o p| a
 ```
-With measure breaks
+Half notes with bar lines
+
+```
+t y u | i o p | a s d
+```
+Whole notes with proper measures
+
+```
+1 2 3 4 5 t y u i o
+```
+Lower and middle octave combination (use Grand Staff mode)
 
 ## Technical Details
 
 - Built with HTML, CSS, and JavaScript
-- Uses native SVG rendering for music notation
+- Enhanced custom SVG rendering engine for professional music notation
+- Implements proper music theory:
+  - Time signature-based measure grouping
+  - Automatic rest insertion for incomplete measures
+  - Note duration spacing and rendering
+  - Grand staff with brace for piano music
+  - Proper accidental placement
 - Uses browser's XMLSerializer and Canvas API for image export
-- Uses window.print() for PDF generation
+- Uses window.print() for PDF generation with page size support
 - No backend required - runs entirely in the browser
 
 ## Browser Compatibility
